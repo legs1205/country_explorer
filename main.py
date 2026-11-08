@@ -25,34 +25,62 @@ def fetch_countries():
 
     return data
 
+
 def transform_countries(raw_countries):
-    """Extract relevant fields from the API data."""
+    """Extract relevant fields from the API data safely."""
     countries_list = []
 
+    if not isinstance(raw_countries, list):
+        return countries_list
+
     for country in raw_countries:
+
+        # Skip records that are not dictionaries.
+        if not isinstance(country, dict):
+            continue
+
+        # Safely extract languages.
         languages_data = country.get("languages") or []
 
-        languages = [
-            language.get("name", "Unknown")
-            for language in languages_data
-            if isinstance(language, dict)
-        ]
+        languages = []
+
+        if isinstance(languages_data, list):
+            for language in languages_data:
+                if isinstance(language, dict):
+                    languages.append(
+                        language.get("name", "Unknown")
+                    )
+
+        # Safely extract numeric information.
+        try:
+            population = int(country.get("population") or 0)
+        except (ValueError, TypeError):
+            population = 0
+
+        try:
+            area = float(country.get("area") or 0)
+        except (ValueError, TypeError):
+            area = 0
+
+        try:
+            density = float(country.get("populationDensity") or 0)
+        except (ValueError, TypeError):
+            density = 0
 
         country_info = {
-            "name": country.get("name", "Unknown"),
-            "population": country.get("population", 0),
-            "area": country.get("area", 0),
-            "region": country.get("region", "Unknown"),
-            "capital": country.get("capital", "Unknown"),
+            "name": country.get("name") or "Unknown",
+            "population": population,
+            "area": area,
+            "region": country.get("region") or "Unknown",
+            "capital": country.get("capital") or "Unknown",
             "languages": languages,
-            "population_density": country.get(
-                "populationDensity", 0
-            ),
+            "population_density": density,
         }
 
         countries_list.append(country_info)
 
     return countries_list
+
 
 def normalize_text(text):
     """Remove accents and convert text to lowercase."""
