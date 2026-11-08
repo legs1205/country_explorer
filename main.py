@@ -1,6 +1,6 @@
 
 import requests
-
+import unicodedata
 
 def fetch_countries():
     """Fetch country data from the countries.dev API."""
@@ -47,18 +47,30 @@ def transform_countries(raw_countries):
 
     return countries_list
 
+def normalize_text(text):
+    """Remove accents and convert text to lowercase."""
+    text = unicodedata.normalize("NFD", text)
+    text = text.encode("ascii", "ignore").decode("utf-8")
+    return text.lower().replace("'", "")
 
 
 def find_country(countries, search_name):
     """Find countries matching a full or partial name."""
-    search_name = search_name.strip().lower()
+
+    search_name = normalize_text(search_name.strip())
+        
+    aliases = {
+        "cote divoire": "ivory coast",
+    }
+
+    search_name = aliases.get(search_name, search_name)
 
     if not search_name:
         return []
 
     # First, look for an exact match.
     for country in countries:
-        country_name = country.get("name", "").lower()
+        country_name = normalize_text(country.get("name", ""))
 
         if country_name == search_name:
             return [country]
@@ -67,13 +79,12 @@ def find_country(countries, search_name):
     matches = []
 
     for country in countries:
-        country_name = country.get("name", "").lower()
+        country_name = normalize_text(country.get("name", ""))
 
         if search_name in country_name:
             matches.append(country)
 
     return matches
-
 
 
 def filter_by_region(countries, region_name):
@@ -171,6 +182,40 @@ def display_matches(matches):
         print(f"{index}. {country.get('name', 'Unknown')}")
 
 
+
+def find_country(countries, search_name):
+    """Find countries matching a full or partial name."""
+
+    search_name = normalize_text(search_name.strip())
+
+    aliases = {
+        "cote divoire": "ivory coast",
+    }
+
+    search_name = aliases.get(search_name, search_name)
+
+    if not search_name:
+        return []
+
+    # First, look for an exact match.
+    for country in countries:
+        country_name = normalize_text(country.get("name", ""))
+
+        if country_name == search_name:
+            return [country]
+
+    # If no exact match exists, return all partial matches.
+    matches = []
+
+    for country in countries:
+        country_name = normalize_text(country.get("name", ""))
+
+        if search_name in country_name:
+            matches.append(country)
+
+    return matches
+
+
 def select_country(countries, search_name):
     """Find and let the user select a country."""
     matches = find_country(countries, search_name)
@@ -196,7 +241,6 @@ def select_country(countries, search_name):
     except ValueError:
         print("Please enter a valid number.")
         return None
-
 
 
 def main():
