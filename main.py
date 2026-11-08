@@ -2,12 +2,12 @@
 import requests
 import unicodedata
 
-def fetch_countries():
+
+def fetch_countries(url="https://countries.dev/countries", params=None):
     """Fetch country data from the countries.dev API."""
-    url = "https://countries.dev/countries"
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
 
