@@ -1,3 +1,4 @@
+
 from main import transform_countries
 
 sample_data = [
@@ -16,5 +17,20 @@ sample_data = [
 
 result = transform_countries(sample_data)
 
-print("Transformation test result:")
-print(result)
+expected_result = [
+    {
+        "name": "Testland",
+        "population": 0,
+        "area": 0,
+        "region": "Test",
+        "capital": "Example",
+        "languages": ["English"],
+        "population_density": 0
+    }
+]
+
+assert result == expected_result, (
+    f"Test failed!\nExpected: {expected_result}\nGot: {result}"
+)
+
+print("All transformation tests passed!")

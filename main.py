@@ -84,8 +84,13 @@ def transform_countries(raw_countries):
 
 def normalize_text(text):
     """Remove accents and convert text to lowercase."""
+
+    if not isinstance(text, str):
+        return ""
+
     text = unicodedata.normalize("NFD", text)
     text = text.encode("ascii", "ignore").decode("utf-8")
+
     return text.lower().replace("'", "")
 
 
