@@ -1,46 +1,80 @@
 
 import requests
+import unicodedata
 
 
-def fetch_countries():
+def fetch_countries(url="https://countries.dev/countries", params=None):
     """Fetch country data from the countries.dev API."""
-    url = "https://countries.dev/countries"
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
-
         data = response.json()
 
-        return data
+    except ValueError as error:
+        print(f"Error: The API returned invalid JSON: {error}")
+        return None
 
     except requests.exceptions.RequestException as error:
         print(f"Error fetching country data: {error}")
         return None
 
+    if not isinstance(data, list):
+        print("Error: Unexpected API response. Expected a list of countries.")
+        return None
+
+    return data
+
+
 def transform_countries(raw_countries):
-    """Extract relevant fields from the API data."""
+    """Extract relevant fields from the API data safely."""
     countries_list = []
 
+    if not isinstance(raw_countries, list):
+        return countries_list
+
     for country in raw_countries:
+
+        # Skip records that are not dictionaries.
+        if not isinstance(country, dict):
+            continue
+
+        # Safely extract languages.
         languages_data = country.get("languages") or []
 
-        languages = [
-            language.get("name", "Unknown")
-            for language in languages_data
-            if isinstance(language, dict)
-        ]
+        languages = []
+
+        if isinstance(languages_data, list):
+            for language in languages_data:
+                if isinstance(language, dict):
+                    languages.append(
+                        language.get("name", "Unknown")
+                    )
+
+        # Safely extract numeric information.
+        try:
+            population = int(country.get("population") or 0)
+        except (ValueError, TypeError):
+            population = 0
+
+        try:
+            area = float(country.get("area") or 0)
+        except (ValueError, TypeError):
+            area = 0
+
+        try:
+            density = float(country.get("populationDensity") or 0)
+        except (ValueError, TypeError):
+            density = 0
 
         country_info = {
-            "name": country.get("name", "Unknown"),
-            "population": country.get("population", 0),
-            "area": country.get("area", 0),
-            "region": country.get("region", "Unknown"),
-            "capital": country.get("capital", "Unknown"),
+            "name": country.get("name") or "Unknown",
+            "population": population,
+            "area": area,
+            "region": country.get("region") or "Unknown",
+            "capital": country.get("capital") or "Unknown",
             "languages": languages,
-            "population_density": country.get(
-                "populationDensity", 0
-            ),
+            "population_density": density,
         }
 
         countries_list.append(country_info)
@@ -48,17 +82,35 @@ def transform_countries(raw_countries):
     return countries_list
 
 
+def normalize_text(text):
+    """Remove accents and convert text to lowercase."""
+
+    if not isinstance(text, str):
+        return ""
+
+    text = unicodedata.normalize("NFD", text)
+    text = text.encode("ascii", "ignore").decode("utf-8")
+
+    return text.lower().replace("'", "")
+
 
 def find_country(countries, search_name):
     """Find countries matching a full or partial name."""
-    search_name = search_name.strip().lower()
+
+    search_name = normalize_text(search_name.strip())
+        
+    aliases = {
+        "cote divoire": "ivory coast",
+    }
+
+    search_name = aliases.get(search_name, search_name)
 
     if not search_name:
         return []
 
     # First, look for an exact match.
     for country in countries:
-        country_name = country.get("name", "").lower()
+        country_name = normalize_text(country.get("name", ""))
 
         if country_name == search_name:
             return [country]
@@ -67,7 +119,7 @@ def find_country(countries, search_name):
     matches = []
 
     for country in countries:
-        country_name = country.get("name", "").lower()
+        country_name = normalize_text(country.get("name", ""))
 
         if search_name in country_name:
             matches.append(country)
@@ -75,10 +127,9 @@ def find_country(countries, search_name):
     return matches
 
 
-
 def filter_by_region(countries, region_name):
     """Return countries belonging to a specific region."""
-    region_name = region_name.strip().lower()
+    region_name = region_name.strip().casefold()
 
     if not region_name:
         return []
@@ -86,10 +137,11 @@ def filter_by_region(countries, region_name):
     matching_countries = []
 
     for country in countries:
-        country_region = country.get("region", "").lower()
+        country_region = country.get("region") or ""
 
-        if country_region == region_name:
-            matching_countries.append(country)
+        if isinstance(country_region, str):
+            if country_region.casefold() == region_name:
+                matching_countries.append(country)
 
     return matching_countries
 
@@ -196,7 +248,6 @@ def select_country(countries, search_name):
     except ValueError:
         print("Please enter a valid number.")
         return None
-
 
 
 def main():

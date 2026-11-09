@@ -19,7 +19,7 @@ Country Explorer is a Python command-line application that retrieves country inf
 
 1. Clone the repository:
    ```bash
-   git clone YOUR_GITHUB_REPOSITORY_URL
+   git clone https://github.com/legs1205/country_explorer.git
    ```
 
 2. Navigate to the project directory:
